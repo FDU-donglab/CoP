@@ -141,7 +141,8 @@ $$\mathcal{L} = \alpha \cdot \mathcal{L}_{\text{contrast}} + \beta \cdot \mathca
 | $\mathcal{L}_{\text{noise}}$ | MSE loss for noise parameter regression | $\beta = 0.5$ |
 
 ---
-
+### Model Zoo
+Our paper is under reviewed at Nature, and we will release the model weights and pre-trained models after the review.
 ## 🗂️ Project Structure
 
 ```
@@ -188,18 +189,10 @@ This project is licensed under the **GNU General Public License v3.0** — see t
 
 If you use this work in your research, please cite:
 
-```bibtex
-@article{gu2025noisegenome,
-  title={Noise Genome Estimator: Learning Unified Noise Representations},
-  author={Gu, Yuanjie and others},
-  journal={...},
-  year={2025}
-}
-```
-
+	arXiv:2601.17047
 
 ---
 
 ## 📬 Contact
 
-For questions or suggestions, please contact: [yuanjie.gu@fudan.edu.cn](mailto:yuanjie.gu@fudan.edu.cn)
+For questions or suggestions, please contact: [guyj23@m.fudan.edu.cn](mailto:guyj23@m.fudan.edu.cn)
