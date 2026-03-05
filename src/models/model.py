@@ -189,22 +189,22 @@ class ColorLoss(nn.Module):
         super(ColorLoss, self).__init__()
         self.mseloss = nn.MSELoss()
 
-    def forward(self, x,y):
-        # 假定image_tensor的形状为(batch_size, channels, height, width)
-        # 其中channels为3，对应RGB三个颜色通道
+    def forward(self, x, y):
+        # Assumes image_tensor shape: (batch_size, channels, height, width)
+        # where channels=3 corresponds to R, G, B
 
-        # 计算R和G通道的差异
+        # Compute R-G channel difference
         rg_diff_x = (x[:, 0, :, :] - x[:, 1, :, :])
         rg_diff_y = (y[:, 0, :, :] - y[:, 1, :, :])
-        # 计算R和B通道的差异
+        # Compute R-B channel difference
         rb_diff_x = (x[:, 0, :, :] - x[:, 2, :, :])
         rb_diff_y = (y[:, 0, :, :] - y[:, 1, :, :])
-        # 计算G和B通道的差异
+        # Compute G-B channel difference
         gb_diff_x = (x[:, 1, :, :] - x[:, 2, :, :])
         gb_diff_y = (y[:, 0, :, :] - y[:, 1, :, :])
 
-        # 将三个差异求和并取平均作为损失
-        loss =self.mseloss(rg_diff_x,rg_diff_y)+self.mseloss(rb_diff_x,rb_diff_y)+self.mseloss(gb_diff_x,gb_diff_y)
+        # Sum the three pairwise losses and average
+        loss = self.mseloss(rg_diff_x, rg_diff_y) + self.mseloss(rb_diff_x, rb_diff_y) + self.mseloss(gb_diff_x, gb_diff_y)
 
         return loss / 3
 
@@ -214,18 +214,18 @@ class ColorConsistencyLoss(nn.Module):
         self.mseloss = nn.MSELoss()
 
     def forward(self, x):
-        # 假定image_tensor的形状为(batch_size, channels, height, width)
-        # 其中channels为3，对应RGB三个颜色通道
+        # Assumes image_tensor shape: (batch_size, channels, height, width)
+        # where channels=3 corresponds to R, G, B
 
-        # 计算R和G通道的差异
+        # Compute R-G channel difference
         rg_diff = torch.abs(x[:, 0, :, :] - x[:, 1, :, :])
-        # 计算R和B通道的差异
+        # Compute R-B channel difference
         rb_diff = torch.abs(x[:, 0, :, :] - x[:, 2, :, :])
-        # 计算G和B通道的差异
+        # Compute G-B channel difference
         gb_diff = torch.abs(x[:, 1, :, :] - x[:, 2, :, :])
 
-        # 将三个差异求和并取平均作为损失
-        loss = torch.mean(rg_diff) + torch.mean(rb_diff) +torch.mean(gb_diff)
+        # Sum the three pairwise losses and average
+        loss = torch.mean(rg_diff) + torch.mean(rb_diff) + torch.mean(gb_diff)
 
 
         return loss / 3

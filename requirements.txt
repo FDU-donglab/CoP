@@ -1,14 +1,36 @@
-torch==2.4.1
-torchvision==0.19.1
-numpy==1.23.5
-scipy==1.15.2
-scikit-image==0.21.0
-tqdm==4.67.0
-kornia==0.7.3
-kornia-augmentation==0.7.0
-timm==1.0.15
-PyYAML==6.0.2
-tensorboard==2.14.0
-matplotlib==3.7.1
-Pillow==10.0.0
-tifffile==2023.9.18
+# ---------------------------------------------------------------
+# Loose version constraints (recommended for general use).
+# PyTorch and torchvision should be installed separately to match
+# your CUDA version: https://pytorch.org/get-started/locally/
+# ---------------------------------------------------------------
+torch>=2.0.0
+torchvision>=0.15.0
+numpy>=1.23.0,<2.0.0
+scipy>=1.10.0
+scikit-image>=0.20.0
+tqdm>=4.60.0
+kornia>=0.7.0
+timm>=0.9.0
+PyYAML>=6.0
+tensorboard>=2.10.0
+matplotlib>=3.6.0
+Pillow>=9.0.0
+tifffile>=2023.1.1
+
+# ---------------------------------------------------------------
+# Pinned versions used during development (for reproducibility).
+# Uncomment and use these if you need an exact environment match.
+# ---------------------------------------------------------------
+# torch==2.4.1
+# torchvision==0.19.1
+# numpy==1.23.5
+# scipy==1.15.2
+# scikit-image==0.21.0
+# tqdm==4.67.0
+# kornia==0.7.3
+# timm==1.0.15
+# PyYAML==6.0.2
+# tensorboard==2.14.0
+# matplotlib==3.7.1
+# Pillow==10.0.0
+# tifffile==2023.9.18

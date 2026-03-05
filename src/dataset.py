@@ -352,7 +352,9 @@ class TestDataset(Dataset):
         
         Args:
             image_dir (str): Directory containing test images
-            param_dir (str, optional): Directory containing noise parameters
+            param_dir (str, optional): Directory containing noise parameters.
+                If provided and matching .npz files exist, ground-truth noise
+                parameters will be loaded for metric computation.
         """
         self.image_dir = image_dir
         self.param_dir = param_dir
@@ -387,7 +389,7 @@ class TestDataset(Dataset):
         image_tensor = image.squeeze(0)
         
         # Load noise params if provided
-        noise_params = None
+        noise_params = torch.zeros(6, dtype=torch.float32)  # placeholder
         if self.param_dir is not None:
             base_name = os.path.splitext(os.path.basename(image_path))[0]
             param_path = os.path.join(self.param_dir, base_name + '.npz')

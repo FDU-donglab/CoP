@@ -499,7 +499,7 @@ class UNetBlock(nn.Module):
         if self.down:
             x = self.block(x)
         else:
-            # 先上采样再卷积
+            # Upsample then convolve
             x = torch.nn.functional.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
             x = self.block(x)
         if self.use_dropout:
@@ -508,11 +508,11 @@ class UNetBlock(nn.Module):
 
 class DDPM_UNet(nn.Module):
     """
-    简单的DDPM用Unet结构，适用于去噪扩散模型
+    Simple UNet structure for DDPM-style denoising diffusion models.
     """
     def __init__(self, in_ch=3, out_ch=3, base_ch=64):
         super().__init__()
-        # 编码器
+        # Encoder
         self.enc1 = nn.Sequential(
             nn.Conv2d(in_ch, base_ch, 3, padding=1),
             nn.ReLU(inplace=True)
@@ -520,12 +520,12 @@ class DDPM_UNet(nn.Module):
         self.enc2 = UNetBlock(base_ch, base_ch*2, down=True)
         self.enc3 = UNetBlock(base_ch*2, base_ch*4, down=True)
         self.enc4 = UNetBlock(base_ch*4, base_ch*8, down=True)
-        # 中间
+        # Bottleneck
         self.middle = nn.Sequential(
             nn.Conv2d(base_ch*8, base_ch*8, 3, padding=1),
             nn.ReLU(inplace=True)
         )
-        # 解码器
+        # Decoder
         self.dec4 = UNetBlock(base_ch*8, base_ch*4, down=False)
         self.dec3 = UNetBlock(base_ch*8, base_ch*2, down=False)
         self.dec2 = UNetBlock(base_ch*4, base_ch, down=False)
@@ -558,7 +558,7 @@ if __name__ == "__main__":
     print(f"Trainable parameters: {trainable_params/1e6}M")
     print(output.shape)
 
-    # 测试DDPM_UNet模型
+    # Test DDPM_UNet model
     input = torch.randn(2, 3, 128, 128)
     model = build_ddpm_unet(in_ch=3, out_ch=3, base_ch=64)
     output = model(input)

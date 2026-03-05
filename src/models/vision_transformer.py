@@ -364,17 +364,18 @@ class VisionTransformer(nn.Module):
 
     def get_last_cls_attn_map(self, x):
         """
-        获取最后一层cls token对所有patch的注意力，并reshape为patch网格，便于可视化。
-        返回: attn_map_2d, shape = (patch_H, patch_W)
+        Extract the attention map from the last layer's cls token to all patch tokens,
+        reshaped into a 2D patch grid for visualization.
+        Returns: attn_map_2d, shape = (patch_H, patch_W)
         """
         self.eval()
         with torch.no_grad():
             _, _, attn_map = self.forward(x, return_attn=True)
             if attn_map is None:
                 return None
-            # attn_map: [B, N, N], N=1+num_patches
-            attn_map = attn_map[0]  # 取第一个batch
-            attn_map = attn_map[0, 1:]  # cls token对所有patch的注意力
+            # attn_map: [B, N, N], N = 1 + num_patches
+            attn_map = attn_map[0]  # take the first sample in the batch
+            attn_map = attn_map[0, 1:]  # cls token attention over all patch tokens
             patch_shape = self.patch_embed.patch_shape  # (H, W)
             attn_map_2d = attn_map.reshape(patch_shape)
             return attn_map_2d.cpu().numpy()

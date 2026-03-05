@@ -8,6 +8,7 @@ Description: Training and testing pipelines for the noise estimation model with 
 
 import torch
 import gc
+import random
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
@@ -27,6 +28,34 @@ import warnings
 
 warnings.filterwarnings("ignore")
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:64"
+
+
+def _random_crop_patches(img, crop_size, n_crops):
+    """
+    Sample n_crops random patches of size crop_size x crop_size from a
+    single image tensor [C, H, W]. If the image is smaller than crop_size
+    in either dimension, it is padded with reflection padding first.
+
+    Args:
+        img (torch.Tensor): Image tensor of shape [C, H, W].
+        crop_size (int): Spatial size of each patch.
+        n_crops (int): Number of random patches to sample.
+
+    Returns:
+        torch.Tensor: Stacked patches of shape [n_crops, C, crop_size, crop_size].
+    """
+    c, h, w = img.shape
+    pad_h = max(crop_size - h, 0)
+    pad_w = max(crop_size - w, 0)
+    if pad_h > 0 or pad_w > 0:
+        img = torch.nn.functional.pad(img, (0, pad_w, 0, pad_h), mode='reflect')
+        _, h, w = img.shape
+    patches = []
+    for _ in range(n_crops):
+        top = random.randint(0, h - crop_size)
+        left = random.randint(0, w - crop_size)
+        patches.append(img[:, top:top + crop_size, left:left + crop_size])
+    return torch.stack(patches)
 
 
 class NoiseIndependentContrastiveLoss(nn.Module):
@@ -120,9 +149,6 @@ class ContrastiveTrainer:
             args.checkpoint_save_path, 
             f"{self.timestamp}"
         )
-        
-        if args.checkpoint_load_path == "None":
-            args.checkpoint_load_path = None
         
         os.makedirs(self.checkpoint_folder, exist_ok=True)
         config_to_json(
@@ -415,19 +441,35 @@ class ContrastiveTrainer:
         all_gt_noises = []
         all_features = []
         all_loss = []
-        
+        n_crops = args.test_num_crops
+        crop_size = args.crop_size_whole_xy
+        print(f"Averaging predictions over {n_crops} random crops per image (crop size: {crop_size})")
+
         with torch.no_grad():
             for idx, terms in enumerate(
                 tqdm(test_dataloader, desc="Testing", ncols=120)
             ):
-                inputs = terms['image'].to(device)
+                inputs = terms['image'].to(device)   # [B, C, H, W]
                 gt_noise = terms['noise_params'].to(device)
-                
-                features, outputs = model(inputs)
+
+                batch_outputs = []
+                batch_features = []
+                for b in range(inputs.shape[0]):
+                    # Sample n_crops random patches from this image
+                    patches = _random_crop_patches(
+                        inputs[b], crop_size, n_crops
+                    ).to(device)                     # [n, C, crop, crop]
+                    feats, outs = model(patches)      # [n, D], [n, 6]
+                    batch_outputs.append(outs.mean(0, keepdim=True))    # [1, 6]
+                    batch_features.append(feats.mean(0, keepdim=True))  # [1, D]
+
+                outputs = torch.cat(batch_outputs, dim=0)   # [B, 6]
+                features = torch.cat(batch_features, dim=0) # [B, D]
+
                 all_outputs.append(outputs.detach().cpu().numpy())
                 all_gt_noises.append(gt_noise.detach().cpu().numpy())
                 all_features.append(features.detach().cpu().numpy())
-                
+
                 loss_val = torch.abs(outputs - gt_noise).mean().item()
                 all_loss.append(loss_val)
 

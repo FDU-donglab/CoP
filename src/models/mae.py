@@ -6,14 +6,14 @@ from einops import repeat, rearrange
 from einops.layers.torch import Rearrange
 
 
-# 这里可以用两个timm模型进行构建我们的结果
+# Two timm models can be used to build the backbone here
 from timm.models.layers import trunc_normal_
 from timm.models.vision_transformer import Block
 
 def random_indexes(size : int):
     forward_indexes = np.arange(size)
-    np.random.shuffle(forward_indexes) # 打乱index
-    backward_indexes = np.argsort(forward_indexes) # 得到原来index的位置，方便进行还原
+    np.random.shuffle(forward_indexes) # shuffle indexes
+    backward_indexes = np.argsort(forward_indexes) # get original positions for reconstruction
     return forward_indexes, backward_indexes
 
 def take_indexes(sequences, indexes):
@@ -32,8 +32,8 @@ class PatchShuffle(torch.nn.Module):
         forward_indexes = torch.as_tensor(np.stack([i[0] for i in indexes], axis=-1), dtype=torch.long).to(patches.device)
         backward_indexes = torch.as_tensor(np.stack([i[1] for i in indexes], axis=-1), dtype=torch.long).to(patches.device)
 
-        patches = take_indexes(patches, forward_indexes) # 随机打乱了数据的patch，这样所有的patch都被打乱了
-        patches = patches[:remain_T] #得到未mask的pacth [T*0.25, B, C]
+        patches = take_indexes(patches, forward_indexes) # shuffle all patches randomly
+        patches = patches[:remain_T] # keep only unmasked patches [T*(1-ratio), B, C]
 
         return patches, forward_indexes, backward_indexes
 
@@ -52,21 +52,21 @@ class MAE_Encoder(torch.nn.Module):
         self.cls_token = torch.nn.Parameter(torch.zeros(1, 1, emb_dim)) 
         self.pos_embedding = torch.nn.Parameter(torch.zeros((image_size // patch_size) ** 2, 1, emb_dim))
         
-        # 对patch进行shuffle 和 mask
+        # Shuffle and mask patches
         self.shuffle = PatchShuffle(mask_ratio)
         
-        # 这里得到一个 (3, dim, patch, patch)
+        # Patchify: output shape (C, emb_dim, patch, patch)
         self.patchify = torch.nn.Conv2d(in_channel, emb_dim, patch_size, patch_size)
 
         self.transformer = torch.nn.Sequential(*[Block(emb_dim, num_head) for _ in range(num_layer)])
         
-        # ViT的laynorm
+        # ViT layer norm
         self.layer_norm = torch.nn.LayerNorm(emb_dim)
 
         self._init_weight_cls_pos()
         self.apply(self._init_weights_linear_ln)
         
-    # 初始化类别编码和向量编码
+    # Initialize cls token and positional embeddings
     def _init_weight_cls_pos(self):
         trunc_normal_(self.cls_token, std=.02)
         trunc_normal_(self.pos_embedding, std=.02)
@@ -116,7 +116,7 @@ class MAE_Decoder(torch.nn.Module):
         self._init_weight_cls_pos()
         self.apply(self._init_weights_linear_ln)
         
-    # 初始化类别编码和向量编码
+    # Initialize mask token and positional embeddings
     def _init_weight_cls_pos(self):
         trunc_normal_(self.mask_token, std=.02)
         trunc_normal_(self.pos_embedding, std=.02)
@@ -135,18 +135,18 @@ class MAE_Decoder(torch.nn.Module):
         backward_indexes = torch.cat([torch.zeros(1, backward_indexes.shape[1]).to(backward_indexes), backward_indexes + 1], dim=0)
         features = torch.cat([features, self.mask_token.expand(backward_indexes.shape[0] - features.shape[0], features.shape[1], -1)], dim=0)
         features = take_indexes(features, backward_indexes)
-        features = features + self.pos_embedding # 加上了位置编码的信息
+        features = features + self.pos_embedding # add positional encoding
 
         features = rearrange(features, 't b c -> b t c')
         features = self.transformer(features)
         features = rearrange(features, 'b t c -> t b c') 
-        features = features[1:] # remove global feature 去掉全局信息，得到图像信息
+        features = features[1:] # remove global (cls) feature
 
-        patches = self.head(features) # 用head得到patchs
+        patches = self.head(features) # project to patch pixels
         mask = torch.zeros_like(patches) 
-        mask[T:] = 1  # mask其他的像素全部设为 1
+        mask[T:] = 1  # mark masked positions as 1
         mask = take_indexes(mask, backward_indexes[1:] - 1)
-        img = self.patch2img(patches) # 得到 重构之后的 img
+        img = self.patch2img(patches) # reconstruct image from patches
         mask = self.patch2img(mask)
 
         return img, mask

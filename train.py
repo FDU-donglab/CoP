@@ -81,8 +81,8 @@ def parse_args():
     )
     parser.add_argument(
         '--checkpoint-load-path', type=str,
-        default="./checkpoint/checkpoints/imnt_woCL/model_epoch_300.pth",
-        help="Path to load checkpoint for training"
+        default=None,
+        help="Path to load a checkpoint to resume training or run testing"
     )
     parser.add_argument(
         '--save-optimizer', type=bool, default=True,
@@ -122,17 +122,21 @@ def parse_args():
     )
     parser.add_argument(
         '--validation-dataset-path', type=str,
-        default="/data/root/yuanjie/20250804",
+        default="./datasets/val",
         help="Path to the validation dataset"
     )
     parser.add_argument(
         '--test-image-path', type=str,
-        default="/data/root/yuanjie/20250804/",
+        default="./datasets/test",
         help="Path to the testing dataset"
     )
     parser.add_argument(
         '--test-param-path', type=str, default="./noise_params",
         help="Path to the testing noise parameters"
+    )
+    parser.add_argument(
+        '--test-num-crops', type=int, default=10,
+        help="Number of random crops to sample per image during testing (predictions are averaged)"
     )
     
     # Visualization
@@ -147,7 +151,7 @@ def parse_args():
     
     # Device
     parser.add_argument(
-        '--gpu', type=int, default=1,
+        '--gpu', type=int, default=0,
         help="GPU id to use"
     )
     

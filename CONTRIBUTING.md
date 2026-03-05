@@ -5,9 +5,11 @@ We appreciate your interest in contributing! Here are some guidelines to help yo
 ## Getting Started
 
 1. Fork the repository
-2. Create a new branch for your feature or bugfix
-3. Make your changes
-4. Submit a pull request
+2. Create a new branch for your feature or bugfix (`feature/your-feature` or `fix/your-bugfix`)
+3. Install the package in editable mode: `pip install -e .`
+4. Make your changes
+5. Verify your changes by running a quick training dry-run (e.g., 1–2 epochs on a small dataset)
+6. Submit a pull request with a clear description of what was changed and why
 
 ## Code Style
 
@@ -25,9 +27,15 @@ Use clear, descriptive commit messages:
 
 ## Testing
 
-- Add unit tests for new features
-- Ensure all tests pass before submitting a PR
-- Test with different Python versions (3.8+)
+There is currently no automated test suite. Before submitting a PR, please manually verify your changes by running a short training or evaluation pass to confirm nothing is broken:
+
+```bash
+python train.py --mode train \
+    --train-dataset-path ./datasets/train \
+    --validation-dataset-path ./datasets/val \
+    --num-epochs 2 \
+    --batch-size 4
+```
 
 ## Documentation
 

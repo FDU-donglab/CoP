@@ -1,14 +1,23 @@
 import torch
 import random
 import os
+import socket
 import torch.distributed as dist
 import numpy as np
 from scipy import interpolate
 from skimage import io, color, util
 import json
 from tqdm import tqdm
+
+def _find_free_port():
+    """Find a free TCP port on localhost."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return str(s.getsockname()[1])
+
 def setup_for_distributed(is_master):
-    """禁用非主进程的打印输出"""
+    """Suppress print output from non-master processes."""
     import builtins as __builtin__
     builtin_print = __builtin__.print
 
@@ -20,33 +29,33 @@ def setup_for_distributed(is_master):
     __builtin__.print = print
 
 def init_distributed_mode(args):
-    # 在 init_distributed_mode 开头添加
+    # Log environment variables for debugging
     print(f"RANK: {os.environ.get('RANK', 'NOT SET')}")
     print(f"LOCAL_RANK: {os.environ.get('LOCAL_RANK', 'NOT SET')}")
     print(f"WORLD_SIZE: {os.environ.get('WORLD_SIZE', 'NOT SET')}")
-    # 场景1: 通过 torch.distributed.launch 或 torchrun 启动
+    # Case 1: Launched via torch.distributed.launch or torchrun
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
         args.rank = int(os.environ["RANK"])
         args.world_size = int(os.environ['WORLD_SIZE'])
         args.gpu = int(os.environ['LOCAL_RANK'])
     
-    # 场景2: Slurm 集群启动
+    # Case 2: Launched on a Slurm cluster
     elif 'SLURM_PROCID' in os.environ:
         args.rank = int(os.environ['SLURM_PROCID'])
         args.world_size = int(os.environ['SLURM_NTASKS'])
         args.gpu = int(os.environ['SLURM_LOCALID'])  
     
-    # 场景3: 单卡模式
+    # Case 3: Single GPU mode
     elif torch.cuda.is_available():
         print('Running on single GPU.')
         args.rank, args.gpu, args.world_size = 0, 0, 1
         os.environ['MASTER_ADDR'] = '127.0.0.1'
-        os.environ['MASTER_PORT'] = '29500'
+        os.environ['MASTER_PORT'] = _find_free_port()
     
     else:
         raise RuntimeError("GPU not available, distributed training not supported")
 
-    # 关键顺序：先绑定设备，再初始化进程组
+    # Important: bind device before initializing process group
     torch.cuda.set_device(args.gpu)
     dist.init_process_group(
         backend="nccl",
@@ -246,11 +255,11 @@ def load_checkpoint_only(checkpoint_load_path, model):
             checkpoint_load_path, map_location='cpu', check_hash=True)
     else:
         checkpoint = torch.load(checkpoint_load_path, map_location='cpu')
-    # 检查是否有'module.'前缀
+    # Extract state dict from checkpoint
     state_dict = checkpoint['model'] if 'model' in checkpoint else checkpoint
-    # 检查是否有'module.'前缀
+    # Remove 'module.' prefix if present (added by DistributedDataParallel)
     if any(k.startswith('module.') for k in state_dict.keys()):
-        # 去除'module.'前缀
+        # Strip 'module.' prefix
         new_state_dict = {k.replace('module.', '', 1): v for k, v in state_dict.items()}
         msg = model.load_state_dict(new_state_dict, strict=True)
     else:

@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# PyTorch / training artifacts
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+runs/
+logs/
+
+# Data
+datasets/
+noise_params/
+*.tif
+*.tiff
+*.npy
+*.npz
+
+# TensorBoard
+tensorboard_logs/
+events.out.tfevents.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Distribution / packaging
+.Python
+*.manifest
+*.spec
+src/__pycache__/
+src/models/__pycache__/
