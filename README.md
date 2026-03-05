@@ -135,7 +135,17 @@ The model optimizes a combined loss:
 
 $$\mathcal{L} = \alpha \cdot \mathcal{L}_{\text{contrast}} + \beta \cdot \mathcal{L}_{\text{noise}}$$
 
-| Term | Description | Default weight |
+| Pre-training | Description | Default weight |
+|---|---|---|
+| $\mathcal{L}_{\text{contrast}}$ | InfoNCE-style contrastive loss | $\alpha = 1$ |
+| $\mathcal{L}_{\text{noise}}$ | MSE loss for noise parameter regression | $\beta = 0$ |
+
+| Fine-tuning | Description | Default weight |
+|---|---|---|
+| $\mathcal{L}_{\text{contrast}}$ | InfoNCE-style contrastive loss | $\alpha = 0$ |
+| $\mathcal{L}_{\text{noise}}$ | MSE loss for noise parameter regression | $\beta = 1$ |
+
+| Joint-learning | Description | Default weight |
 |---|---|---|
 | $\mathcal{L}_{\text{contrast}}$ | InfoNCE-style contrastive loss | $\alpha = 0.5$ |
 | $\mathcal{L}_{\text{noise}}$ | MSE loss for noise parameter regression | $\beta = 0.5$ |
